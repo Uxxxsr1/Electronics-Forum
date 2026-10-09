@@ -1,4 +1,4 @@
 .env
 .vscode
 *.log
-
+db.sqlite3
