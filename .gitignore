@@ -2,3 +2,9 @@
 .vscode
 *.log
 db.sqlite3
+.venv
+venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
