@@ -1,11 +1,59 @@
-vesrion: "3.8"
+version: '3.8'
 
 services:
-  app:
-    build: .
+  postgres:
+    image: postgres:15-alpine
+    container_name: forum_postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      VALKEY_HOST: ${VALKEY_HOST}
+      CONTAINER_NAME: ${CONTAINER_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-    volumes::
+  valkey:
+    image: valkey/valkey:latest
+    container_name: ${CONTAINER_NAME}
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkeydata:/data
+
+  backend:
+    image: python:3.14.8-slim
+    container_name: forum_backend
+    restart: always
+    working_dir: /app
+    env_file:
+      - .env
+    command: >
+      bash -c "pip install --no-cache-dir -r requirements.txt &&
+               uvicorn src.backend.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - VALKEY_HOST=${VALKEY_HOST}
+      - VALKEY_PORT=6379
+    volumes:
       - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_started
 
-    restart: unless-stopped
-
+volumes:
+  pgdata:
+  valkeydata:
