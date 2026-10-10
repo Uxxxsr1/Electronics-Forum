@@ -1,4 +1,4 @@
 # Voltcode
-idgaf what type, jus valkey opensource repo
+idgaf what type, jus voltcode opensource repo
 
 
